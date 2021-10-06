@@ -30,27 +30,17 @@ This course is about (some aspects of) how do you use statistical techniques in 
 ---------------------------------------------------------------------------------------------------------------------------------
 
 ***Knowledge:***
-
 After completing the course, students will have gained knowledge of:
-
-• The conceptual assumptions underlying linear and non-linear statistical methods and the implications of choosing between such methods
-
-• Strengths and weaknesses of non-linear methods
+- The conceptual assumptions underlying linear and non-linear statistical methods and the implications of choosing between such methods
+- Strengths and weaknesses of non-linear methods
 
 ***Skills:***
-
 After completing the course, students will be able to:
-
-• Motivate the choice between linear and non-linear statistical methods of analysis
-
-• Design empirical studies with particular consideration of the strengths and weaknesses associated with the statistical methods used
-
-• Carry out non-linear data analyses
+- Motivate the choice between linear and non-linear statistical methods of analysis
+- Design empirical studies with particular consideration of the strengths and weaknesses associated with the statistical methods used
+- Carry out non-linear data analyses
 
 ***Competences:***
-
 After completing the course, students will be able to:
-
-• Critically choose between, compare and substantiate the best qualified statistical tools for a given data set and research question
-
-• Explain the results of linear and non-linear statistical analyses and their relevance to the research question
+- Critically choose between, compare and substantiate the best qualified statistical tools for a given data set and research question
+- Explain the results of linear and non-linear statistical analyses and their relevance to the research question
