@@ -1,0 +1,749 @@
+---
+title: "Assignment 2 - Language Development in ASD - Part 1 - Explaining development"
+author: "Bianka, Ruta, Peter & Bella"
+date: "[10/10/2019]"
+output: html_document
+---
+    
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(include = FALSE)
+```
+
+# Assignment 2
+
+In this assignment you will have to discuss a few important questions (given the data you have). More details below. The assignment submitted to the teachers consists of:
+- a report answering and discussing the questions (so we can assess your conceptual understanding and ability to explain and critically reflect)
+- a link to a git repository with all the code (so we can assess your code)
+
+Part 1 - Basic description of language development
+- Describe your sample (n, age, gender, clinical and cognitive features of the two groups) and critically assess whether the groups (ASD and TD) are balanced
+- Describe linguistic development (in terms of MLU over time) in TD and ASD children (as a function of group). 
+- Describe how parental use of language (in terms of MLU) changes over time. What do you think is going on?
+- Include individual differences in your model of language development (in children). Identify the best model.
+
+Part 2 - Model comparison
+- Discuss the differences in performance of your model in training and testing data
+- Which individual differences should be included in a model that maximizes your ability to explain/predict new data?
+- Predict a new kid's performance (Bernie) and discuss it against expected performance of the two groups
+
+Part 3 - Simulations to plan a new study
+- Report and discuss a power analyses identifying how many new kids you would need to replicate the results
+
+The following involves only Part 1.
+
+## Learning objectives
+
+- Summarize and report data and models
+- Critically apply mixed effects (or multilevel) models
+- Explore the issues involved in feature selection
+
+
+# Quick recap
+Autism Spectrum Disorder is often related to language impairment. However, this phenomenon has not been empirically traced in detail:
+i) relying on actual naturalistic language production,  ii) over extended periods of time.
+
+We therefore videotaped circa 30 kids with ASD and circa 30 comparison kids (matched by linguistic performance at visit 1) for ca. 30 minutes of naturalistic interactions with a parent. We repeated the data collection 6 times per kid, with 4 months between each visit. We transcribed the data and counted: 
+i) the amount of words that each kid uses in each video. Same for the parent.
+ii) the amount of unique words that each kid uses in each video. Same for the parent.
+iii) the amount of morphemes per utterance (Mean Length of Utterance) displayed by each child in each video. Same for the parent. 
+
+This data is in the file you prepared in the previous class. 
+
+NB. A few children have been excluded from your datasets. We will be using them next week to evaluate how good your models are in assessing the linguistic development in new participants.
+
+This RMarkdown file includes 
+1) questions (see above). Questions have to be answered/discussed in a separate document that you have to directly send to the teachers.
+2) A break down of the questions into a guided template full of hints for writing the code to solve the exercises. Fill in the code and the paragraphs as required. Then report your results in the doc for the teachers.
+
+REMEMBER that you will have to have a github repository for the code and send the answers to Kenneth and Riccardo without code (but a link to your github/gitlab repository). This way we can check your code, but you are also forced to figure out how to report your analyses :-)
+
+Before we get going, here is a reminder of the issues you will have to discuss in your report:
+
+1- Describe your sample (n, age, gender, clinical and cognitive features of the two groups) and critically assess whether the groups (ASD and TD) are balanced
+2- Describe linguistic development (in terms of MLU over time) in TD and ASD children (as a function of group). 
+3- Describe how parental use of language (in terms of MLU) changes over time. What do you think is going on?
+4- Include individual differences in your model of language development (in children). Identify the best model.
+
+# Let's go
+
+### Loading the relevant libraries
+
+Load necessary libraries : what will you need?
+- e.g. something to deal with the data
+- e.g. mixed effects models
+- e.g. something to plot with
+
+```{r Load Libraries, include = FALSE}
+# loading libraries for part 1
+library(pacman)
+pacman::p_load(lmerTest, tidyverse, wesanderson)
+# loading libraries for part 2
+pacman::p_load(readr,dplyr,stringr,Metrics,caret, cvms, pastecs, rmse, groupdata2,knitr)
+# loading libraries for part 3
+pacman::p_load(simr, ggplot2)
+```
+
+### Define your working directory and load the data
+If you created a project for this class and opened this Rmd file from within that project, your working directory is your project directory.
+
+If you opened this Rmd file outside of a project, you will need some code to find the data:
+- Create a new variable called locpath (localpath)
+- Set it to be equal to your working directory
+- Move to that directory (setwd(locpath))
+- Load the data you saved last time (use read_csv(fileName))
+
+```{r Load Data, include = FALSE}
+# setting local working directory
+localPath <- getwd()
+setwd(localPath)
+
+# loading csv file into dataframe
+data <- read.csv("cleaned_data_1.csv")
+# deleting unnecessary column 
+data <- subset(data, select = -c(X))
+```
+
+
+
+PART 1
+
+### Characterize the participants (Exercise 1)
+
+Identify relevant variables: participants demographic characteristics, diagnosis, ADOS, Verbal IQ, Non Verbal IQ, Socialization, Visit, Number of words used, Number of unique words used, mean length of utterance in both child and parents.
+
+Make sure the variables are in the right format.
+
+Describe the characteristics of the two groups of participants and whether the two groups are well matched.
+
+```{r descriptive stats, include = TRUE}
+# summarizing the experimental data in order to compare the two groups, TD and ASD
+summary(data)
+# The sample included 29 children who are normally depeloping (TD; Mean age = 20.3 months, F=26, M=6) and 32 children with autism disorder (ASD; Mean age = 32.9, F=25, M=4)
+
+# creating barcharts to visualize how gender and ethnicity is distributed between the ASD and TD participant group
+# gender
+barchartGender <- ggplot(data, aes(Diagnosis, Gender, fill = Gender)) + geom_bar(stat = "identity") + guides(fill = guide_legend(reverse = TRUE)) + labs(fill = "Gender") + ggtitle("Gender Distribution")
+barchartGender
+# ethnicity
+barchartEthnicity <- ggplot(data, aes(Diagnosis, Ethnicity, fill = Ethnicity)) + geom_bar(stat = "identity") + guides(fill = guide_legend(reverse = TRUE)) + labs(fill = "Ethnicity") + ggtitle("Ethnic Distribution")
+barchartEthnicity
+
+# creating boxplots to visualize the ADOS score, socialization score, verbal IQ, non-verbal IQ, number of words and unique words, and mean length of utterance for child and parent between TD and ASD diagnostic groups
+# ADOS
+boxplot_ADOS <- ggplot(data, aes(Diagnosis,ADOS,fill=Diagnosis))+geom_boxplot()+labs(title = "ADOS",x = "Diagnosis", y = "ADOS score") + scale_fill_manual(values = wes_palette("GrandBudapest2"))
+boxplot_ADOS
+# socilization
+boxplotSocialization<- ggplot(data, aes(x=Diagnosis, y=Socialization, fill = Diagnosis))+geom_boxplot()+labs(title = "Socialization", x = "Diagnosis", y = "Socialization score")+scale_fill_manual(values = wes_palette("GrandBudapest1"))
+boxplotSocialization
+# verbal IQ in all
+boxplotVerbal_IQ<- ggplot(data, aes(x=Diagnosis, y=ExpressiveLangRaw, fill = Diagnosis))+geom_boxplot()+labs(title = "Verbal IQ", x = "Diagnosis", y = "Verbal IQ")+scale_fill_manual(values = wes_palette("GrandBudapest2"))
+boxplotVerbal_IQ
+boxplotVerbal_IQ_day_1<- ggplot(data, aes(x=Diagnosis, y=ExpressiveLangRaw1, fill = Diagnosis))+geom_boxplot()+labs(title = "Verbal IQ day 1", x = "Diagnosis", y = "Verbal IQ at day 1")+scale_fill_manual(values = wes_palette("GrandBudapest2"))
+boxplotVerbal_IQ_day_1
+# nonverbal IQ at visit 1
+boxplotNonverbal_IQ<- ggplot(data, aes(x=Diagnosis, y=MullenRaw, fill = Diagnosis))+geom_boxplot()+labs(title = "Nonverbal IQ", x = "Diagnosis", y = "Non-verbal IQ")+scale_fill_manual(values = wes_palette("GrandBudapest1"))
+boxplotNonverbal_IQ
+# child unique words
+boxplotWordTypes<- ggplot(data, aes(x=Diagnosis, y=types_CHI, fill = Diagnosis))+geom_boxplot()+labs(title = "Number of unique words used by child", x = "Diagnosis", y = "Number of unique words used by child")+scale_fill_manual(values = wes_palette("GrandBudapest2"))
+boxplotWordTypes
+# child word count
+boxplotWordCount <- ggplot(data, aes(Diagnosis, tokens_CHI, fill = Diagnosis)) + geom_boxplot() + labs(title = "Number of words used by child",x = "Diagnosis", y = "Number of words used by child")+scale_fill_manual(values = wes_palette("GrandBudapest1"))
+boxplotWordCount
+
+# creating a boxplot that dispalys individual children's MLU's and diagnostic group
+boxplotChild_MLU <- ggplot(data, aes(Diagnosis, CHI_MLU, fill = Diagnosis)) + geom_boxplot() + labs(title = "Child mean length of utterance", x = "Diagnosis", y = "Child mean length of utterance")+scale_fill_manual(values = wes_palette("GrandBudapest1"))
+boxplotChild_MLU
+
+# creating a boxplot that visualizes the distribution of the parents' MLU's between diagnostic groups
+boxplotMother_MLU <- ggplot(data, aes(Diagnosis, MOT_MLU, fill = Diagnosis)) + geom_boxplot() + labs(title = "Parent mean length of utterance", x = "Diagnosis", y = "Parent mean length of utterance")+scale_fill_manual(values = wes_palette("GrandBudapest2"))
+boxplotMother_MLU
+
+# creating a boxplot that visualizes individual parents' MLU's grouped by diagnosis
+data$ID <- as.factor(data$ID)
+boxplotMother_MLU_2 <- ggplot(data, aes(ID, MOT_MLU, fill = Diagnosis)) + geom_boxplot() + labs(title = "Parent mean length of utterance", x = "Child diagnosis", y = "Parent mean length of utterance")+scale_fill_manual(values = wes_palette("GrandBudapest1"))
+boxplotMother_MLU_2
+
+# creating a boxplot that visualizes individual children's MLU's grouped by diagnosis
+boxplotChild_MLU_2 <- ggplot(data, aes(ID, CHI_MLU, fill = Diagnosis)) + geom_boxplot() + labs(title = "Child mean length of utterance", x = " Diagnosis", y = "Parent mean length of utterance")+scale_fill_manual(values = wes_palette("GrandBudapest2"))
+boxplotChild_MLU_2
+
+
+```
+
+
+## Let's test hypothesis 1: Children with ASD display a language impairment  (Exercise 2)
+
+### Hypothesis: The child's MLU changes: i) over time, ii) according to diagnosis
+
+Let's start with a simple mixed effects linear model
+
+Remember to plot the data first and then to run a statistical test.
+- Which variable(s) should be included as fixed factors?
+- Which variable(s) should be included as random factors?
+
+```{r ex2, include = FALSE}
+# creating a barchart visualizing the mean child MLU according to diagnosis
+barchartChild_MLU <- ggplot(data, aes(Diagnosis, CHI_MLU, fill = Diagnosis)) + stat_summary(fun.y = mean, geom = "bar") + geom_errorbar(stat = "summary", fun.data = mean_se, width = 0.25) + theme(legend.position='none') + labs(title = "Child MLU", x = "Diagnosis", y = "Child MLU")
+barchartChild_MLU
+
+# creating a lineplot visualizing general MLU trajectories of diagnostic groups
+lineplot_MLU <- ggplot(data, aes(VISIT, CHI_MLU, color = Diagnosis)) + geom_point() + geom_smooth(method = "lm", se = F) + labs(title = "Child MLU by diagnosis without individual random intercept", x = "Visit number", y = "Child MLU")
+lineplot_MLU
+
+# visualizing individual MLU trajectories of the ASD children
+# factorizing continuous ID numbers
+data$ID <- as.factor(data$ID)
+# creating a lineplot  of individual ASD MLU trajectories
+lineplot_ASD_MLU <- ggplot(filter(data, Diagnosis == "ASD"), aes(VISIT, CHI_MLU, group = ID, color = ID)) + geom_smooth(method = "lm", se = F) + labs(title = "ASD Child MLU", x = "Visit number", y = "Child MLU")
+lineplot_ASD_MLU
+
+# visualizing the individual MLU trajectories of the children grouped by diagnostics
+lineplot_ASD_TD_MLU <- ggplot(data, aes(VISIT, CHI_MLU, group = ID, color = Diagnosis)) + geom_smooth(method = "lm", se = F) + labs(title = "Child MLU", x = "Visit number", y = "Child MLU")
+lineplot_ASD_TD_MLU
+
+
+# visualizing the individual MLU trajectories of the parents grouped by diagnostics
+lineplotParent_MLU <- ggplot(data, aes(VISIT, MOT_MLU, group = ID, color = Diagnosis)) + geom_smooth(method = "lm", se = F) + labs(title = "Parent MLU", x = "Visit number", y = "Parent MLU")
+lineplotParent_MLU
+
+# creating a mixed effects model with random intercept dependent on ID and visit number as predictor
+CHI_model_1 <- lmerTest::lmer(CHI_MLU ~ VISIT + (1|ID), data = data, REML = F)
+summary(CHI_model_1)
+
+# creating a mixed effects model with random intercept dependent on ID while visit number and diagnosis are fixed effects
+CHI_model_2 <- lmerTest::lmer(CHI_MLU ~ Diagnosis + VISIT + (1|ID), data = data, REML = F)
+summary(CHI_model_2) 
+
+# creating a mixed effects model with random ID intercept and interaction between visit number and diagnosis
+CHI_model_3 <- lmerTest::lmer(CHI_MLU ~ Diagnosis*VISIT + (1|ID), data = data, REML = F)
+summary(CHI_model_3)
+
+# creating a mixed effects model with random ID intercept and slope and interaction between visit number and diagnosis
+CHI_model_4 <- lmerTest::lmer(CHI_MLU ~ Diagnosis*VISIT + (1|ID) + (0 + VISIT|ID), data = data, REML = F)
+summary(CHI_model_4)
+
+
+```
+
+How would you evaluate whether the model is a good model?
+
+```{r ex2 evaluate, include = FALSE}
+# establishing a null model including random intercepts
+CHI_model_0 <- lmerTest::lmer(CHI_MLU ~ (1|ID), data = data, REML = F)
+
+# comparing the model 0 and 1 using anova to investigate the effect of visit in the model
+anova(CHI_model_0, CHI_model_1)
+
+# comparing model 1 and 2 using anova to investigate the effect of diagnosis in the model
+anova(CHI_model_1, CHI_model_2)
+
+# comparing model 2 and 3 using anova to investigate the effect of random slope in the model
+anova(CHI_model_2, CHI_model_3)
+
+# comparing model 3 and 4 using anova to investigate the effect of random slope in the model
+anova(CHI_model_3, CHI_model_4)
+
+# according to the anova, child model 3 is superior and explains the biggest part of the variance
+```
+
+Not too good, right? Let's check whether a growth curve model is better.
+Remember: a growth curve model assesses whether changes in time can be described by linear, or quadratic, or cubic (or... etc.) components.
+First build the different models, then compare them to see which one is better.
+
+```{r ex2 growth curve, include = FALSE}
+############# skip ##############
+```
+
+Exciting right? Let's check whether the model is doing an alright job at fitting the data. Plot the actual CHI_MLU data against the predictions of the model fitted(model). 
+
+```{r}
+############ skip #################
+
+```
+
+Now it's time to report our results.
+Remember to report:
+- the estimates for each predictor (beta estimate, standard error, p-value)
+- A plain word description of the results
+- A plot of your model's predictions (and some comments on whether the predictions are sensible)
+
+[REPORT THE RESULTS]
+Linguistic development of children MLU is affected by ... [COMPLETE]
+
+## Let's test hypothesis 2: Parents speak equally to children with ASD and TD  (Exercise 3)
+
+### Hypothesis: Parental MLU changes: i) over time, ii) according to diagnosis
+
+```{r ex3, include = FALSE}
+# creating a mixed effects model of parent MLU with random intercepts based on ID and visit set as a fixed effect
+MOT_model_5 <- lmerTest::lmer(MOT_MLU ~ VISIT + (1|ID), data = data, REML = F)
+summary(MOT_model_5) 
+
+# creating a mixed effects model of parent MLU with random intercept dependent on ID while visit number and diagnosis are fixed effects
+MOT_model_6 <- lmerTest::lmer(MOT_MLU ~ Diagnosis + VISIT + (1|ID), data = data, REML = F)
+summary(MOT_model_6) 
+
+# creating a mixed effects model of parent MLU with random ID intercept and interaction between visit number and diagnosis
+MOT_model_7 <- lmerTest::lmer(MOT_MLU ~ Diagnosis*VISIT + (1|ID), data = data, REML = F)
+summary(MOT_model_7)
+
+# creating a mixed effects model of parent MLU with random ID intercept and slope and interaction between visit number and diagnosis
+MOT_model_8 <- lmerTest::lmer(MOT_MLU ~ Diagnosis*VISIT + (1|ID) + (0 + VISIT|ID), data = data, REML = F)
+summary(MOT_model_8)
+
+```
+
+
+
+### Adding new variables (Exercise 4)
+
+Your task now is to figure out how to best describe the children linguistic trajectory. The dataset contains a bunch of additional demographic, cognitive and clinical variables (e.g.verbal and non-verbal IQ). Try them out and identify the statistical models that best describes your data (that is, the children's MLU). Describe how you selected the best model and send the code to run the model to Riccardo and Kenneth
+
+
+```{r ex4, include = FALSE}
+# establishing possible models to explain the recorded MLU trajectories. Multiple variables are taken into consideration, knowing full well of the risk of overfitting the model to the data using the explorative technique
+expModel_1 <- lmerTest::lmer(CHI_MLU ~ Diagnosis * ExpressiveLangRaw1 * VISIT + (1|ID), data = data, REML = F, na.action = na.omit)
+summary(expModel_1)
+
+expModel_2 <- lmerTest::lmer(CHI_MLU~ Diagnosis * VISIT + MOT_MLU + (1|ID), data = data, REML = F, na.action = na.omit)
+summary(expModel_2)
+
+expModel_3 <- lmerTest::lmer(CHI_MLU ~ Diagnosis + VISIT + MOT_MLU + (1|ID), data = data, REML = F, na.action = na.omit)
+summary(expModel_3)
+
+expModel_4 <- lmerTest::lmer(CHI_MLU ~ Diagnosis + VISIT + Socialization1 + (1|ID), data = data, REML = F, na.action = na.omit)
+summary(expModel_4)
+
+expModel_5 <- lmerTest::lmer(CHI_MLU ~ Diagnosis * VISIT + ExpressiveLangRaw1 + (1|ID) + (0 + VISIT|ID), data = data, REML = F, na.action = na.omit)
+summary(expModel_5)
+
+# running anovas in order to investigate which model explains most of the variance and is the best fit for our observed data
+anova(CHI_model_4, expModel_1)
+anova(expModel_1, expModel_2)
+anova(expModel_1, expModel_3)
+anova(expModel_1, expModel_4)
+anova(expModel_1, expModel_5)
+
+# using this explorative approach, explorative model 1 seems to be the best model out of the options we have tried
+```
+
+
+PART 2 
+
+## Welcome to the second exciting part of the Language Development in ASD exercise
+
+In this exercise we will delve more in depth with different practices of model comparison and model selection, by first evaluating your models from last time against some new data. Does the model generalize well?
+Then we will learn to do better by cross-validating models and systematically compare them.
+
+The questions to be answered (in a separate document) are:
+1- Discuss the differences in performance of your model in training and testing data
+2- Which individual differences should be included in a model that maximizes your ability to explain/predict new data?
+3- Predict a new kid's performance (Bernie) and discuss it against expected performance of the two groups
+
+## Learning objectives
+
+- Critically appraise the predictive framework (contrasted to the explanatory framework)
+- Learn the basics of machine learning workflows: training/testing, cross-validation, feature selections
+
+## Let's go
+
+N.B. There are several datasets for this exercise, so pay attention to which one you are using!
+
+1. The (training) dataset from last time (the awesome one you produced :-) ).
+2. The (test) datasets on which you can test the models from last time:
+* Demographic and clinical data: https://www.dropbox.com/s/ra99bdvm6fzay3g/demo_test.csv?dl=1
+* Utterance Length data: https://www.dropbox.com/s/uxtqqzl18nwxowq/LU_test.csv?dl=1
+* Word data: https://www.dropbox.com/s/1ces4hv8kh0stov/token_test.csv?dl=1
+
+### Exercise 1) Testing model performance
+
+How did your models from last time perform? In this exercise you have to compare the results on the training data () and on the test data. Report both of them. Compare them. Discuss why they are different.
+
+- recreate the models you chose last time (just write the model code again and apply it to your training data (from the first assignment))
+- calculate performance of the model on the training data: root mean square error is a good measure. (Tip: google the function rmse())
+- create the test dataset (apply the code from assignment 1 to clean up the 3 test datasets)
+- test the performance of the models on the test data (Tips: google the functions "predict()")
+- optional: predictions are never certain, can you identify the uncertainty of the predictions? (e.g. google predictinterval())
+
+
+```{r, include = TRUE}
+# creating a clean up function that streamlines the datasets into a common format before merging into new dataframe
+CleanUpData <- function(Demo,LU,Word){
+  
+  Speech <- merge(LU, Word) %>% 
+    rename(
+      Child.ID = SUBJ, 
+      Visit=VISIT) %>%
+    mutate(
+      Visit = as.numeric(str_extract(Visit, "\\d")),
+      Child.ID = gsub("\\.","", Child.ID)
+      ) %>%
+    dplyr::select(
+      Child.ID, Visit, MOT_MLU, CHI_MLU, types_MOT, types_CHI, tokens_MOT, tokens_CHI
+    )
+  
+  Demo <- Demo %>%
+    dplyr::select(
+      Child.ID, Visit, Ethnicity, Diagnosis, Gender, Age, ADOS, MullenRaw, ExpressiveLangRaw, Socialization
+    ) %>%
+    mutate(
+      Child.ID = gsub("\\.","", Child.ID)
+    )
+    
+  Data=merge(Demo,Speech,all=T)
+  
+  Data1= Data %>% 
+     subset(Visit=="1") %>% 
+     dplyr::select(Child.ID, ADOS, ExpressiveLangRaw, MullenRaw, Socialization) %>%
+     rename(Ados1 = ADOS, 
+            verbalIQ1 = ExpressiveLangRaw, 
+            nonVerbalIQ1 = MullenRaw,
+            Socialization1 = Socialization) 
+  
+  Data=merge(Data, Data1, all=T) %>%
+    mutate(
+      Child.ID = as.numeric(as.factor(as.character(Child.ID))),
+      Visit = as.numeric(as.character(Visit)),
+      Gender = recode(Gender, 
+         "1" = "M",
+         "2" = "F"),
+      Diagnosis = recode(Diagnosis,
+         "A"  = "ASD",
+         "B"  = "TD")
+    )
+  return(Data)
+}
+
+# loading training datasets from csv files to dataframes
+train_LU <- read.csv("LU_train.csv")
+trainDemo <- read.csv("demo_train.csv")
+trainToken <- read.csv("token_train.csv")
+
+# loading testing datasets from csv files to dataframes
+testDemo <- read.csv("demo_test.csv")
+test_LU <- read.csv("LU_test.csv")
+testToken <- read.csv("token_test.csv")
+
+# running clean up function on the datasets
+cleanTrainData <- CleanUpData(trainDemo, train_LU, trainToken)
+cleanTestData <- CleanUpData(testDemo, test_LU, testToken)
+
+# excluding NA's from the cleaned datasets
+cleanTrain <- subset(cleanTrainData, !is.na(CHI_MLU))
+cleanTest <- subset(cleanTestData,!is.na(CHI_MLU))
+
+# recreating the model, we selected as the best fitting (expModel_1) and applying it to the train dataset
+bestModel <- lmer(CHI_MLU ~ Visit * Diagnosis * verbalIQ1 + (1|Child.ID) + (0 + Visit|Child.ID), data = cleanTrain)
+summary(bestModel)
+
+# calculating the performance of the best model on the training data
+# finding the predicted variables given the selected best model
+predictedBest <- predict(bestModel, allow.new.levels= T)
+View(predictedBest)
+# using root mean square error function to evaluate whether the predicted variables are close to the actual variables in the training set
+rmse(cleanTrain$CHI_MLU, predictedBest)
+# root mean square error 0.3722756
+
+# calculating the performance of the best model on the testing data
+# using root mean square error function to evaluate whether the predicted variables are close to the actual variables in the testing set in order to compare the errors to the ones obtained from the training set on which it was fitted
+rmse(cleanTest$CHI_MLU, predictedBest)
+# root mean square error 1.128569. Since there is a large leap between the RMSE for the train and testing data, we must take into account that our model is probably overfitted to the specific random variance of the training data
+
+# calculating the performance of the basic model (CHI_model_3) by comparing rmse between train and test data
+# finding predicted values from basic model
+predictedBasic <- predict(CHI_model_3, allow.new.levels = T)
+# calculating RMSE for training data
+rmse(cleanTrain$CHI_MLU, predictedBasic)
+# calculating RMSE for testing ddta
+rmse(cleanTest$CHI_MLU, predictedBasic)
+# when utilizing the basic model the rmse for training data is 0.411, while the RMSE for testing data is 1.120. These results also point towards an overfitting to the training data. The RMSE values are incredibly close between the basic model and the best fitted model. Using this assesment, we would recommend selecting the basic model for further analysis, since complexity has a cost and should at the very least entail better predictions.
+```
+
+ 
+
+### Exercise 2) Model Selection via Cross-validation (N.B: ChildMLU!)
+
+One way to reduce bad surprises when testing a model on new data is to train the model via cross-validation. 
+
+In this exercise you have to use cross-validation to calculate the predictive error of your models and use this predictive error to select the best possible model.
+
+- Use cross-validation to compare your model from last week with the basic model (Child MLU as a function of Time and Diagnosis, and don't forget the random effects!)
+- (Tips): google the function "createFolds";  loop through each fold, train both models on the other folds and test them on the fold)
+
+
+- Now try to find the best possible predictive model of ChildMLU, that is, the one that produces the best cross-validated results.
+
+- Bonus Question 1: What is the effect of changing the number of folds? Can you plot RMSE as a function of number of folds?
+- Bonus Question 2: compare the cross-validated predictive error against the actual predictive error on the test data
+
+
+```{r}
+# renaming cleanTrain ID's to avoid double ID's
+cleanTrain$Child.ID <- cleanTrain$Child.ID + 260
+
+# binding the two datasets into one
+cleanData <-rbind(cleanTest, cleanTrain)
+
+# creating a basic model of child MLU as a function of time and diagnosis with random effects in the form of random slope and intercept
+basicModel <- lmerTest::lmer(CHI_MLU ~ Diagnosis * Visit + (1|Child.ID) + (0 + Visit|Child.ID), data = cleanData, REML = F)
+summary(basicModel)
+
+# recreating best model of child MLU as a function of visit, diagnosis, and verbal IQ in interaction and random slope and intercept
+bestModel <- lmer(CHI_MLU ~ Visit * Diagnosis * verbalIQ1 + (1|Child.ID) + (0 + Visit|Child.ID), data = cleanData, REML = F)
+
+# cross-validating the basic model, the best model a couple of random models and the basic model in order to see how well the models make predictions
+
+# Set seed for reproducibility
+set.seed(7)
+
+# creating different models
+models <- c("CHI_MLU ~ Visit * Diagnosis + (1|Child.ID)",
+"CHI_MLU ~ Visit * Diagnosis * verbalIQ1 + (1|Child.ID) + (0 + Visit|Child.ID)", "CHI_MLU ~ Visit * Diagnosis + verbalIQ1 + (1|Child.ID) + (0 + Visit|Child.ID)", "CHI_MLU ~ Diagnosis + Visit + Socialization1 + (1|Child.ID)", "CHI_MLU ~ Visit * Diagnosis + Visit * verbalIQ1 + Visit * Ados1 + (1|Child.ID) + (0 + Visit|Child.ID)")
+
+# creating folds column
+cleanDataFold<- fold(cleanData, k = 5,
+             cat_col = 'Diagnosis',
+             id_col = 'Child.ID') %>% 
+  arrange(.folds)
+
+# cross-validating the basic and best fit model
+CV <- cross_validate(cleanDataFold, models,
+                      fold_cols = ".folds",
+                      family = "gaussian",
+                      control = lmerControl(
+                        optimizer = "nloptwrap",
+                        calc.derivs = F,
+                        optCtrl = list(
+                          ftol_abs = 1e-10,
+                          xtol_abs = 1e-10,
+                          maxeval = 100000)),
+                        rm_nc = F,
+                        REML = FALSE)
+                     
+
+# piping and displaying the results of the cross-validation
+CV %>% select_metrics() %>% kable()
+
+# the AIC and RMSE scores are lowest for our best exploratory model CHI_MLU ~ Visit * Diagnosis * verbalIQ1 + (1|Child.ID) + (0 + Visit|Child.ID) (AIC = 432.4, RMSE = 0.542) and the complex exploratory model CHI_MLU ~ Visit * Diagnosis + Visit * verbalIQ1 + Visit * Ados1 + (1|Child.ID) + (0 + Visit|Child.ID) (AIC = 432.4, RMSE = 0.552). These two models are thus the best at predicting the values of our dataset. The basic model CHI_MLU ~ Visit * Diagnosis + (1|Child.ID) doesn't perform as well in predicting new data points (AIC = 515.6, RMSE = 0.769).
+
+
+# Bonus Question 1: What is the effect of changing the number of folds? Can you plot RMSE as a function of number of folds?
+# Bonus Question 2: compare the cross-validated predictive error against the actual predictive error on the test data
+```
+
+ 
+### Exercise 3) Assessing the single child
+
+Let's get to business. This new kiddo - Bernie - has entered your clinic. This child has to be assessed according to his group's average and his expected development.
+
+Bernie is one of the six kids in the test dataset, so make sure to extract that child alone for the following analysis.
+
+You want to evaluate:
+
+- how does the child fare in ChildMLU compared to the average TD child at each visit? Define the distance in terms of absolute difference between this Child and the average TD.
+
+- how does the child fare compared to the model predictions at Visit 6? Is the child below or above expectations? (tip: use the predict() function on Bernie's data only and compare the prediction with the actual performance of the child)
+```{r}
+# difining child ID as an integer
+cleanTest$Child.ID <- as.integer(cleanTest$Child.ID)
+# creating dataframe filtering for Bernie's data, him being participant 2
+bernieData <- filter(cleanTest,Child.ID == 2)
+
+# creating dataframe of TD participants
+TD_data <- filter(cleanData, Diagnosis == "TD")
+
+# preparing visualization of data points from mean MLU's and Bernie's MLU's
+# looping through the six visits, calculatuing mean values and concatenating means into number vector
+means = c()
+for (i in (1:6)) {
+  visitData <- filter(TD_data, Visit == i)
+  mean <- mean(visitData$CHI_MLU)
+  means <- c(means, mean)
+}
+
+# creating separate dataframe for visualization
+bernie_TD_data <- data.frame(Visit = c(1:6,1:6), CHI_MLU = c(bernieData$CHI_MLU, means),  Group = c("Bernie", "Bernie", "Bernie", "Bernie", "Bernie", "Bernie", "Mean TD", "Mean TD", "Mean TD", "Mean TD", "Mean TD", "Mean TD"))
+
+# visualizing Bernie's data compared to TD mean trajectory
+lineplotBernie_TD <- ggplot(bernie_TD_data, aes(Visit, CHI_MLU, group = Group, color = Group)) + geom_line() + labs(title = "Bernie and TD MLU's", x = "Visit", y = "MLU")
+lineplotBernie_TD
+
+# using a for-loop to loop through the six visits in order to find the absolute difference between Bernie's MLU and the TD mean at a given visit
+for (i in (1:6)) {
+  X <- filter(TD_data, Visit == i)
+  B <- filter(bernieData, Visit == i)
+  x <- (mean(X$CHI_MLU))
+  b <- (B$CHI_MLU)
+  print(abs(x-b))
+  }
+# difference visit 1: 0.67269
+# difference visit 2: 0.7825305
+# difference visit 3: 1.126588
+# difference visit 4: 0.4517913
+# difference visit 5: 0.1807254
+# difference visit 6: 0.537425
+
+
+# determining how close Bernie's number six visit datapoint for MLU is to the predicted value from the basic model
+# creating predictions using the basic model on Bernie's data
+predictedBasic <- predict(basicModel, bernieData, allow.new.levels= T)
+predictedBasic
+# calculating the difference between Bernie's actual MLU and predicted MLU at day 6
+bernieData$CHI_MLU[6] - predictedBasic[6]
+# there is a -0.007  difference between the predicted MLU of Bernie and his actual MLU at day 6. Bernie therefore underperforms compared to the model. At day 6 the predicted MLU for Bernie is 3.455693, while his actual MLU is 3.448413.
+# determining root mean square error to estimate a measure of how far the predicted datapoints are from Bernie's actual datapoints.
+rmse(bernieData$CHI_MLU, predictedBasic)
+# the root mean square error is 0.2860443
+
+# finding rmse for best fitted model 3
+# calculating predicted variables
+predictedBest <- predict(bestModel, bernieData, allow.new.levels= T)
+# finding differnce between Bernie's actual and predicted MLU at day six
+bernieData$CHI_MLU[6] - predictedBest[6]
+# the diffference betweeen actual and predicted value is -0.05708156 
+# calculating rmse for all of Bernie's visits
+rmse(bernieData$CHI_MLU, predictedBest)
+# the root mean square error is 0.2775517
+
+```
+
+
+### OPTIONAL: Exercise 4) Model Selection via Information Criteria
+Another way to reduce the bad surprises when testing a model on new data is to pay close attention to the relative information criteria between the models you are comparing. Let's learn how to do that!
+
+Re-create a selection of possible models explaining ChildMLU (the ones you tested for exercise 2, but now trained on the full dataset and not cross-validated).
+
+Then try to find the best possible predictive model of ChildMLU, that is, the one that produces the lowest information criterion.
+
+- Bonus question for the optional exercise: are information criteria correlated with cross-validated RMSE? That is, if you take AIC for Model 1, Model 2 and Model 3, do they co-vary with their cross-validated RMSE?
+
+### OPTIONAL: Exercise 5): Using Lasso for model selection
+Welcome to the last secret exercise. If you have already solved the previous exercises, and still there's not enough for you, you can expand your expertise by learning about penalizations. Check out this tutorial: http://machinelearningmastery.com/penalized-regression-in-r/ and make sure to google what penalization is, with a focus on L1 and L2-norms. Then try them on your data!
+
+
+PART 3
+
+
+## Welcome to the third exciting part of the Language Development in ASD exercise
+
+In this part of the assignment, we try to figure out how a new study should be planned (i.e. how many participants?) in order to have enough power to replicate the findings (ensuring our sample size is adequate, our alpha at 0.05 and our beta at 0.8):
+1- if we trust the estimates of the current study. Report the power analysis and comment on what you can (or cannot) use its estimates for.
+2- if we are skeptical of the current study. Report the power analysis and comment on what you can (or cannot) use its estimates for.
+3- if we only have access to 30 participants. Identify the power for each relevant effect and discuss whether it's worth to run the study and why
+The list above is also what you should discuss in your code-less report.
+
+
+## Learning objectives
+
+- Learn how to calculate statistical power
+- Critically appraise how to apply frequentist statistical power
+
+### Exercise 1
+
+How much power does your study have (if your model estimates are quite right)?
+- Load your dataset (both training and testing), fit your favorite model, assess power for your effects of interest (probably your interactions).
+- Report the power analysis and comment on what you can (or cannot) use its estimates for.
+- Test how many participants you would have to have to replicate the findings (assuming the findings are correct)
+
+N.B. Remember that main effects are tricky once you have interactions in the model (same for 2-way interactions w 3-way interactions in the model). If you want to test the power of main effects, run a model excluding the interactions.
+N.B. Check this paper: https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12504
+You will be using:
+- powerSim() to calculate power
+- powerCurve() to estimate the needed number of participants
+- extend() to simulate more participants
+
+```{r}
+# look at the cleaned data
+cleanData[1:20,]
+
+# trying out with a basic model used earlier
+CHI_model_3 <- lmer(CHI_MLU ~ 1 + Visit*Diagnosis + (1|Child.ID), data = cleanData, REML = F)
+
+# setting the fixed effect of the model to 0.5 as a minimal interesting effect
+fixef(CHI_model_3)["Visit:DiagnosisTD"] <- 0.5 
+
+# display fixed effects of the simple model
+fixef(CHI_model_3)
+
+# simulating power over 1000 tries
+powerSim(CHI_model_3, test=fixed("Visit:Diagnosis"), nsim = 1000, seed= 123, progress=F)
+
+# creating a power curve 
+powerCurve <- powerCurve(CHI_model_3, fixed("Visit:Diagnosis"), along = "Child.ID", 
+                  nsim = 1000, breaks = seq(from = 10, to = 71, by = 1), seed = 1, progress = F) 
+
+# plotting the power curve
+plot(powerCurve)
+
+```
+
+
+### Exercise 2
+
+How would you perform a more conservative power analysis?
+- Identify and justify a minimum effect size for each of your relevant effects
+- take the model from exercise 1 and replace the effects with the minimum effect size that you'd accept.
+- assess the power curve by Child.ID, identifying an ideal number of participants to estimate each effect
+- if your power estimates do not reach an acceptable threshold simulate additional participants and repeat the previous analysis
+- Report the power analysis and comment on what you can (or cannot) use its estimates for.
+
+```{r}
+# simulating 120 more participants
+extendedModel <- extend(CHI_model_3, along = "Child.ID", n = 120)
+
+# setting the fixed to 0,1 since we found 0,5 to be too strict
+fixef(CHI_model_3)["Visit:DiagnosisTD"] <- 0.1
+
+# creating a power curve with the extended participant number
+powerCurve_2 <- powerCurve(CHI_model_3, fixed("Visit:Diagnosis"), along = "Child.ID", 
+                  nsim = 1000, breaks = seq(from = 10, to = 120, by = 1), seed = 1, progress = F)
+
+# plotting the power curve
+plot(powerCurve_2)
+
+```
+
+
+### Exercise 3
+
+Assume you have only the resources to collect 30 kids (15 with ASD and 15 TDs). Identify the power for each relevant effect and discuss whether it's worth to run the study and why
+
+```{r}
+# making two dataframes with 15 TD and 15 ASD children, selection criteria: child must have participated in visit 6, but not necessarily all visits
+# filtering out the ID's
+TD_ID <- filter(cleanData[cleanData$Visit == 6,], Diagnosis == "TD")
+ASD_ID <- filter(cleanData[cleanData$Visit == 6,], Diagnosis == "ASD")
+
+# making a dataframe of 15 TD children (89 observations - 1 missing visit)
+TD_data <- data.frame()
+for (i in (1:15)){
+  TD <- filter(cleanData, Child.ID == TD_ID$Child.ID[i])
+  TD_data <- rbind(TD_data, TD)
+}
+
+# making a dataframe of 15 ASD children (86 observations - 4 missing visits)
+ASD_data <- data.frame()
+for (i in (1:15)){
+  ASD <- filter(cleanData, Child.ID == ASD_ID$Child.ID[i])
+  ASD_data <- rbind(ASD_data, ASD)
+}
+
+# binding the two dataframes into one by rows
+TD_ASD_data <- rbind(ASD_data, TD_data)
+
+# creating a new basic model trained on the selective TD and ASD data
+model_30 <- lmer(CHI_MLU ~ 1 + Visit * Diagnosis + (1|Child.ID), data = TD_ASD_data, REML = F)
+summary(model_30)
+
+# simmulating power over 500 tries
+powerSim(model_30, test = fixed("Visit:Diagnosis"), nsim = 1000, seed = 123, progress = F)
+
+# creating a power curve to visualize how power is dependent on participant sample size
+powerCurve_30 <- powerCurve(model_30, fixed("Visit:Diagnosis"), along = "Child.ID", 
+                  nsim = 1000, breaks = seq(from = 10, to = 30, by = 1), seed = 1, progress = F) 
+
+# plotting the power curve
+plot(powerCurve_30)
+
+```
