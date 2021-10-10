@@ -17,9 +17,9 @@ This course is about (some aspects of) how do you use statistical techniques in 
 | --- | --- |
 | Portfolio 1: Data cleaning & wrangling (data preprocessing for Portfolio 2) | Testing out the git integration with RStudio. Cleaning and transforming several data sets into just one containing only the variables that are needed for the analysis. Warming up tidyverse skills (especially the sub-packages stringr and dplyr) |
 | Portfolio 2: Assessing linguistic development (in ASD) (code + report) | Developing a tool (mixed effects or multilevel models) to assess and predict language development in children |
-| Portfolio 3: Automated assessment of schizophrenia through voice analysis (code + report) | Building and assessing an automated tool to “diagnose” schizophrenia from voice |
-| Portfolio 4: Interpersonal coordination of physiology (code + report) | Critically assessing the presence and mechanisms of interpersonal coordination |
-| Portfolio 5: Meta-analysis of voice patterns in schizophrenia (code + report)| Critically collect and organize previous findings in a meta-analysis to guide future studies |
+| Portfolio 3: Automated assessment of schizophrenia through voice analysis (code + report) | Building and assessing an automated tool to “diagnose” schizophrenia from voice. Creating a logistic regression model, which can be applied as a classifier. |
+| Portfolio 4: Interpersonal coordination of physiology (code + report) | Critically assessing the presence and mechanisms of interpersonal coordination. Preprocessing and modeling heart rate and respiration data |
+| Portfolio 5: Meta-analysis of voice patterns in schizophrenia (code + report)| Critically collectig and organizing previous findings in a meta-analysis to guide future studies |
 
 
 
