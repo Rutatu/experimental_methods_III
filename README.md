@@ -18,7 +18,7 @@ This course is about (some aspects of) how do you use statistical techniques in 
 
 ## Portfolio assignments
 
-File ```Experimental_methods_3_Portfolio.pdf``` contains a compilation of written reports solving the assignements listed below:
+File ```Experimental_methods_3_Portfolio.pdf``` contains a compilation of written reports solving the assignements listed below. ```Assignments code``` folder contains rmd and md files displaying the code solving the assignment.
 
 | Assignment | Description |
 | --- | --- |
