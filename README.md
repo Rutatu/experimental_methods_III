@@ -18,6 +18,8 @@ This course is about (some aspects of) how do you use statistical techniques in 
 
 ## Portfolio assignments
 
+File ```Experimental_methods_3_Portfolio.pdf``` contains a compilation of written reports solving the assignements listed below:
+
 | Assignment | Description |
 | --- | --- |
 | Portfolio 1: Data cleaning & wrangling (data preprocessing for Portfolio 2) | Testing out the git integration with RStudio. Cleaning and transforming several data sets into just one containing only the variables that are needed for the analysis. Warming up tidyverse skills (especially the sub-packages stringr and dplyr) |
