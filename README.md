@@ -1,6 +1,8 @@
 # experimental_methods_III
 
-***This repository contains portfolio assignments (as a single pdf file), which were done during the experimental methods III course as part of Cognitive Science BA´s degree at Aarhus University***
+***This repository contains portfolio assignments (as a single pdf file), which were done during the experimental methods III course as part of Cognitive Science BA´s degree at Aarhus University
+Teacher:Riccardo Fusaroli; Instructor: Kenneth Christian Enevoldsen
+***
 
 ***2019 fall semester***
 
